@@ -8,6 +8,7 @@ temp/
 data/ 
 
 # ignore ALL files in directory named data
-.ipynb_checkpoints/ 
+.ipynb_checkpoints/
+ 
 
 
