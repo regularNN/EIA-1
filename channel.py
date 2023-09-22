@@ -10,6 +10,7 @@ class EnvChannel:
         # Initialize the environment with given parameters.
         self.num_delay_bins = 3  # Number of delay bins (states)
         self.num_resolutions = len(resolution_list)  # Number of resolutions
+        resolution_list = np.sort(resolution_list)
         self.resolution_dict = {resolution: i for i, resolution in enumerate(resolution_list)}  # Map resolutions to indices
         
         # Calculate the total number of states, initialize current and previous states, and other attributes.
@@ -112,7 +113,7 @@ class ControlAgent:
             reward = 0
         else:
             reward, state = self.env.step(self.prev_action)
-            self.state_record.append(self.env.curr_state)
+#             self.state_record.append(self.env.curr_state)
 
             if not self.random_actions:
                 old_qvalue = self.q_table[self.prev_state[0], self.prev_state[1], self.prev_action]
@@ -136,6 +137,6 @@ class ControlAgent:
         self.prev_action = action  # Update previous action
         
         if self.iteration_i%20 == 0: 
-            with open(path+f_name,'wb') as fp:
-                pickle.dump([self.q_table, self.alpha, self.epsilon])
+            with open(self.path+self.f_name,'wb') as fp:
+                pickle.dump([self.q_table, self.alpha, self.epsilon], fp)
         return self.map_action(action), action, state, reward  # Return mapped action, action taken, current state, and reward
