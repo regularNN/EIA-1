@@ -60,7 +60,7 @@ class EnvChannel:
 
 # Define a control agent class for reinforcement learning.
 class ControlAgent:
-    def __init__(self, resolution_list, d1, d2, alpha=0.1, gamma=0.1, epsilon=0.3, random_actions=False):
+    def __init__(self, resolution_list, d1, d2, alpha=0.1, gamma=0.1, epsilon=0.9, random_actions=False):
         # Initialize the control agent with various parameters.
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
@@ -104,7 +104,7 @@ class ControlAgent:
         
         # Decay alpha and epsilon values over time.
         if np.mod(self.iteration_i + 2, 10) == 0:
-            self.alpha = self.alpha * 0.95
+            self.alpha = self.alpha * 0.8
             self.epsilon = self.epsilon * 0.95
 
         if self.iteration_i == 1:
