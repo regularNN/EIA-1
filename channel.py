@@ -33,7 +33,7 @@ class EnvChannel:
 
     def get_reward(self):
         # Calculate the reward based on the current state and error score.
-        return 0.5 * self.resolution_state / (self.delay_state + 1) + 0.5 * self.error_score
+        return 0.5 / (self.delay_state + 1) + 0.5 * self.error_score
 
     def step(self, action):
         # Perform a step in the environment based on the chosen action.
@@ -77,6 +77,7 @@ class ControlAgent:
         self.random_actions = random_actions  # Flag for random actions
         self.path = "Channel_Data"
         self.f_name = "/Data_"+datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")+".pkl"
+        self.q_table_hist = []
         self.create_directory()
         
         
@@ -104,8 +105,8 @@ class ControlAgent:
         
         # Decay alpha and epsilon values over time.
         if np.mod(self.iteration_i + 2, 10) == 0:
-            self.alpha = self.alpha * 0.8
-            self.epsilon = self.epsilon * 0.95
+            self.alpha = self.alpha * 0.7
+            self.epsilon = self.epsilon * 0.7
 
         if self.iteration_i == 1:
             state = self.env.estimate_state()
@@ -135,8 +136,8 @@ class ControlAgent:
 
         self.prev_state = state  # Update previous state
         self.prev_action = action  # Update previous action
-        
+        self.q_table_hist.append(self.q_table.copy())
         if self.iteration_i%20 == 0: 
             with open(self.path+self.f_name,'wb') as fp:
-                pickle.dump([self.q_table, self.alpha, self.epsilon], fp)
-        return self.map_action(action), action, state, reward  # Return mapped action, action taken, current state, and reward
+                pickle.dump([self.q_table_hist, self.alpha, self.epsilon], fp)
+        return self.map_action(action), state, reward  # Return mapped action, action taken, current state, and reward
