@@ -60,11 +60,13 @@ class EnvChannel:
 
 # Define a control agent class for reinforcement learning.
 class ControlAgent:
-    def __init__(self, resolution_list, d1, d2, alpha=0.1, gamma=0.1, epsilon=0.9, random_actions=False):
+    def __init__(self, resolution_list, d1, d2, alpha=0.1, gamma=0.99, epsilon=0.99, random_actions=False):
         # Initialize the control agent with various parameters.
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
         self.epsilon = epsilon  # Exploration probability
+        self.epsilon_decay = 0.001  # Exploration probability decay
+        self.epsilon_min = .01  # Minimum Exploration probability 
         self.env = EnvChannel(resolution_list, d1, d2)  # Create an environment instance
         self.q_table = np.zeros([self.env.num_delay_bins, self.env.num_resolutions, self.env.num_actions])  # Q-table for storing action values
         self.all_epochs = []  # List to record training epochs
@@ -104,9 +106,8 @@ class ControlAgent:
         self.iteration_i += 1  # Increment iteration counter
         
         # Decay alpha and epsilon values over time.
-        if np.mod(self.iteration_i + 2, 10) == 0:
-            self.alpha = self.alpha * 0.7
-            self.epsilon = self.epsilon * 0.7
+        self.alpha = np.max(.001, self.alpha * self.epsilon_decay) 
+        self.epsilon = np.max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
         if self.iteration_i == 1:
             state = self.env.estimate_state()
