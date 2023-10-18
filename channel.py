@@ -106,8 +106,8 @@ class ControlAgent:
         self.iteration_i += 1  # Increment iteration counter
         
         # Decay alpha and epsilon values over time.
-        self.alpha = np.max(.001, self.alpha * self.epsilon_decay) 
-        self.epsilon = np.max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+        self.alpha = np.max([.001, self.alpha * self.epsilon_decay]) 
+        self.epsilon = np.max([self.epsilon_min, self.epsilon * self.epsilon_decay])
 
         if self.iteration_i == 1:
             state = self.env.estimate_state()
