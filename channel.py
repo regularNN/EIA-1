@@ -38,7 +38,7 @@ class EnvChannel:
     def step(self, action):
         # Perform a step in the environment based on the chosen action.
         self.action = action
-        self.reward = self.get_reward()
+        self.reward = -self.get_reward() #negative of the rewards
         return self.reward, self.estimate_state()
 
     def estimate_state(self):
