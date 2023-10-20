@@ -33,12 +33,12 @@ class EnvChannel:
 
     def get_reward(self):
         # Calculate the reward based on the current state and error score.
-        return 0.5 / (self.delay_state + 1) + 0.5 * self.error_score
+        return 0.5 / (self.delay_state**2 + 1) + 0.5 * self.error_score
 
     def step(self, action):
         # Perform a step in the environment based on the chosen action.
         self.action = action
-        self.reward = -self.get_reward() #negative of the rewards
+        self.reward = self.get_reward() #negative of the rewards
         return self.reward, self.estimate_state()
 
     def estimate_state(self):
