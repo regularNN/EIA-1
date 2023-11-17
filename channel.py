@@ -25,7 +25,8 @@ class EnvChannel:
         self.d2 = d2  # Threshold for "medium" delay state
         self.avg_delay = 0
         self.curr_resolution = 0
-        self.error_score = 0
+        self.deviation_error = 0
+        self.deviation_state = 0
 
     def sample_action(self):
         # Randomly sample an action from the valid actions.
@@ -33,12 +34,12 @@ class EnvChannel:
 
     def get_reward(self):
         # Calculate the reward based on the current state and error score.
-        return 0.5 / (self.delay_state**2 + 1) + 0.5 * self.error_score
+        return 0.5 / (self.delay_state + 1)  0.5 * self.deviation_state
 
     def step(self, action):
         # Perform a step in the environment based on the chosen action.
         self.action = action
-        self.reward = self.get_reward() #negative of the rewards
+        self.reward = -self.get_reward()
         return self.reward, self.estimate_state()
 
     def estimate_state(self):
@@ -60,13 +61,11 @@ class EnvChannel:
 
 # Define a control agent class for reinforcement learning.
 class ControlAgent:
-    def __init__(self, resolution_list, d1, d2, alpha=0.1, gamma=0.99, epsilon=0.99, random_actions=False):
+    def __init__(self, resolution_list, d1, d2, alpha=0.1, gamma=0.1, epsilon=0.9, random_actions=False):
         # Initialize the control agent with various parameters.
         self.alpha = alpha  # Learning rate
         self.gamma = gamma  # Discount factor
         self.epsilon = epsilon  # Exploration probability
-        self.epsilon_decay = 0.01  # Exploration probability decay
-        self.epsilon_min = .01  # Minimum Exploration probability 
         self.env = EnvChannel(resolution_list, d1, d2)  # Create an environment instance
         self.q_table = np.zeros([self.env.num_delay_bins, self.env.num_resolutions, self.env.num_actions])  # Q-table for storing action values
         self.all_epochs = []  # List to record training epochs
@@ -96,18 +95,31 @@ class ControlAgent:
             return 0  # No change in delay
         if state == 2:
             return 1  # Increase delay
+            
+    def get_deviation_state(self, deviation):
+    	if deviation==0:
+    		return 0
+    	elif deviation <= 25:
+    		return 1
+    	elif deviation <= 50:
+    		return 2
+    	else:
+    		return 3
+    	
 
-    def get_signal(self, delay_list, curr_resolution, error_score):
+    def get_signal(self, delay_list, curr_resolution, deviation_error):
         # Receive input signals and update the agent's knowledge.
         self.env.avg_delay = np.average(delay_list)  # Update average delay
         self.env.curr_resolution = curr_resolution  # Update current resolution
-        self.env.error_score = np.abs(error_score) / 100.0  # Update error score (normalized)
+        self.env.deviation_state = self.get_deviation_state()
+        # self.env.deviation_error = -np.abs(deviation_error) / 100.0  # Update error score (normalized)
         
         self.iteration_i += 1  # Increment iteration counter
         
         # Decay alpha and epsilon values over time.
-        self.alpha = np.max([.001, self.alpha * (1-self.epsilon_decay/3)]) 
-        self.epsilon = np.max([self.epsilon_min, self.epsilon * (1-self.epsilon_decay/3)])
+        if np.mod(self.iteration_i + 2, 10) == 0:
+            self.alpha = self.alpha * 0.7
+            self.epsilon = self.epsilon * 0.7
 
         if self.iteration_i == 1:
             state = self.env.estimate_state()
