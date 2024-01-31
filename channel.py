@@ -1,6 +1,6 @@
 import numpy as np
 import pickle
-import sys, os
+import sys, os, math
 import datetime
 
 
@@ -34,7 +34,7 @@ class EnvChannel:
 
     def get_reward(self):
         # Calculate the reward based on the current state and error score.
-        return 0.5 / (self.delay_state + 1)  0.5 * self.deviation_state
+        return 0.5 / (self.delay_state + 1) + 0.5 * self.deviation_state
 
     def step(self, action):
         # Perform a step in the environment based on the chosen action.
@@ -68,6 +68,7 @@ class ControlAgent:
         self.epsilon = epsilon  # Exploration probability
         self.env = EnvChannel(resolution_list, d1, d2)  # Create an environment instance
         self.q_table = np.zeros([self.env.num_delay_bins, self.env.num_resolutions, self.env.num_actions])  # Q-table for storing action values
+
         self.all_epochs = []  # List to record training epochs
         self.action_record = []  # List to record taken actions
         self.state_record = []  # List to record observed states
@@ -80,6 +81,9 @@ class ControlAgent:
         self.f_name = "/Data_"+datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")+".pkl"
         self.q_table_hist = []
         self.create_directory()
+        self.q_table_count_unchanged = 0
+        self.q_table_converged_iter = 0
+        self.q_table_prev = self.q_table.copy()
         
         
     def create_directory(self):
@@ -108,18 +112,21 @@ class ControlAgent:
     	
 
     def get_signal(self, delay_list, curr_resolution, deviation_error):
+        
+        self.q_table_prev = self.q_table.copy()
+        
         # Receive input signals and update the agent's knowledge.
         self.env.avg_delay = np.average(delay_list)  # Update average delay
         self.env.curr_resolution = curr_resolution  # Update current resolution
-        self.env.deviation_state = self.get_deviation_state()
+        self.env.deviation_state = self.get_deviation_state(deviation_error)
         # self.env.deviation_error = -np.abs(deviation_error) / 100.0  # Update error score (normalized)
         
         self.iteration_i += 1  # Increment iteration counter
         
         # Decay alpha and epsilon values over time.
         if np.mod(self.iteration_i + 2, 10) == 0:
-            self.alpha = self.alpha * 0.7
-            self.epsilon = self.epsilon * 0.7
+            self.alpha = self.alpha * 0.95
+            self.epsilon = self.epsilon * 0.95
 
         if self.iteration_i == 1:
             state = self.env.estimate_state()
@@ -150,7 +157,16 @@ class ControlAgent:
         self.prev_state = state  # Update previous state
         self.prev_action = action  # Update previous action
         self.q_table_hist.append(self.q_table.copy())
+        if (self.q_table_prev == self.q_table).all():
+            self.q_table_count_unchanged += 1
+            if self.q_table_count_unchanged==10:
+                self.q_table_converged_iter = self.iteration_i
+        else:
+            self.q_table_count_unchanged = 0
+        
         if self.iteration_i%20 == 0: 
             with open(self.path+self.f_name,'wb') as fp:
                 pickle.dump([self.q_table_hist, self.alpha, self.epsilon], fp)
-        return self.map_action(action), state, reward  # Return mapped action, action taken, current state, and reward
+        # combine total iterations and number of iterations it took for convergence into iter_data
+        iter_data = self.q_table_converged_iter + (1.0*self.iteration_i)/10**(int(math.log10(self.iteration_i))+1)
+        return self.map_action(action), state, reward, iter_data  # Return mapped action, current state, and reward
